@@ -1,6 +1,25 @@
 <!DOCTYPE html>
 <html lang="es">
-<head>
+<head><!-- PLAYABLE_TOUCH_PATCH_V1 --><script>
+(function() {
+  if (window.__playableTouchPatchInstalled) return;
+  window.__playableTouchPatchInstalled = true;
+  var origAdd = EventTarget.prototype.addEventListener;
+  var blockedTypes = { touchstart: 1, touchmove: 1, wheel: 1 };
+  EventTarget.prototype.addEventListener = function(type, listener, options) {
+    if (blockedTypes[type]) {
+      if (options === undefined || options === null) {
+        options = { passive: true };
+      } else if (typeof options === 'boolean') {
+        options = { capture: options, passive: true };
+      } else {
+        options = Object.assign({}, options, { passive: true });
+      }
+    }
+    return origAdd.call(this, type, listener, options);
+  };
+})();
+</script><script>window.Intl=window.Intl||{};Intl.t=function(s){return(Intl._locale&&Intl._locale[s])||s;};</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>TasaStock PRO</title>
@@ -23,8 +42,30 @@ button{width:100%;height:46px;border-radius:12px;border:0;font-weight:700;cursor
 .total{background:#fff;color:#000;border-radius:16px;padding:12px;text-align:center}
 #owner-panel{background:#1e1e22;border:2px dashed #25D366;border-radius:16px;padding:16px;margin:16px 0}
 </style>
+
+<link rel="manifest" href="manifest.json">
+<script>
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  let btn = document.getElementById('btn-install');
+  if(btn) btn.style.display='flex';
+});
+async function instalarApp(){
+  if(deferredPrompt){
+    deferredPrompt.prompt();
+    let r = await deferredPrompt.userChoice;
+    deferredPrompt=null;
+    document.getElementById('btn-install').style.display='none';
+  } else {
+    alert('En Chrome dale a los 3 puntitos > Instalar app / Agregar a pantalla principal');
+  }
+}
+</script>
+<style>#btn-install{position:fixed;bottom:16px;left:16px;right:16px;height:56px;background:#fff;color:#000;border-radius:16px;display:none;align-items:center;justify-content:center;font-weight:900;z-index:9999;box-shadow:0 10px 30px rgba(0,0,0,0.5)}</style>
 </head>
-<body>
+<body><button id="btn-install" onclick="instalarApp()">📲 INSTALAR COMO APP (1 TOQUE)</button>
 <div id="activation-screen" class="card">
   <div id="owner-trigger" class="shield">🛡️</div>
   <h1 id="owner-trigger-2">Activa TasaStock PRO</h1>
@@ -52,7 +93,7 @@ button{width:100%;height:46px;border-radius:12px;border:0;font-weight:700;cursor
 <div id="main-screen" class="card hidden">
   <div style="display:flex;justify-content:space-between;align-items:center">
     <b>TasaStock PRO <span style="background:#25D366;color:#000;padding:2px 6px;border-radius:6px;font-size:10px">OFFLINE</span></b>
-    <button onclick="logout()" style="width:auto;padding:0 12px;height:32px" class="btn-dark">Salir</button>
+    
   </div>
   
   <div style="margin:16px 0;background:#0e0e10;border:1px solid #2a2a30;border-radius:14px;padding:14px">
@@ -76,11 +117,7 @@ button{width:100%;height:46px;border-radius:12px;border:0;font-weight:700;cursor
     <div class="total"><div class="small">TOTAL Bs</div><b id="t-bs">0</b></div>
   </div>
 
-  <div class="row">
-    <button class="btn-dark" onclick="exportar()">⬇️ Exportar .json</button>
-    <label class="btn-dark" style="display:flex;align-items:center;justify-content:center;cursor:pointer">⬆️ Importar <input type="file" id="import-file" accept=".json" style="display:none"></label>
-  </div>
-</div>
+  
 
 <script>
 const SEED=9281, MULT=37;
