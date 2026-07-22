@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TasaStock PRO</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:system-ui}
+body{background:#0a0a0b;color:#fff;padding:16px}
+.card{background:#151518;border:1px solid #2a2a30;border-radius:20px;padding:20px;max-width:560px;margin:0 auto}
+h1{font-size:28px;text-align:center}
+.shield{width:80px;height:80px;background:#fff;border-radius:20px;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:40px;cursor:pointer;user-select:none}
+input{width:100%;height:46px;background:#0e0e10;border:1px solid #2a2a30;border-radius:12px;padding:0 14px;color:#fff;margin:8px 0}
+button{width:100%;height:46px;border-radius:12px;border:0;font-weight:700;cursor:pointer}
+.btn-white{background:#fff;color:#000}
+.btn-green{background:#25D366;color:#000}
+.btn-dark{background:#1e1e22;color:#fff;border:1px solid #2a2a30}
+.prod{background:#1a1a1e;border:1px solid #2a2a30;border-radius:14px;padding:12px;display:flex;justify-content:space-between;margin:8px 0;align-items:center}
+.small{font-size:12px;opacity:0.5}
+.mono{font-family:monospace}
+.hidden{display:none}
+.row{display:flex;gap:8px}
+.total{background:#fff;color:#000;border-radius:16px;padding:12px;text-align:center}
+#owner-panel{background:#1e1e22;border:2px dashed #25D366;border-radius:16px;padding:16px;margin:16px 0}
+</style>
+</head>
+<body>
+<div id="activation-screen" class="card">
+  <div id="owner-trigger" class="shield">🛡️</div>
+  <h1 id="owner-trigger-2">Activa TasaStock PRO</h1>
+  <p class="small" style="text-align:center;margin:12px 0">Ingresa tu código formato ABCD-1234. Validación offline segura.</p>
+  
+  <div id="owner-panel" class="hidden">
+    <b style="color:#25D366">🔓 GENERADOR DUEÑO</b>
+    <input id="owner-name" placeholder="Nombre cliente Ej: Bodega Sol">
+    <button class="btn-dark" onclick="genCode()">Generar Código</button>
+    <div id="gen-result" style="font-size:22px;text-align:center;margin:12px 0;font-weight:900;letter-spacing:2px"></div>
+    <button class="btn-green" onclick="useGen()">Copiar y Usar este código</button>
+  </div>
+
+  <label class="small">CÓDIGO DE ACTIVACIÓN</label>
+  <input id="act-input" placeholder="BODE-4732" style="text-transform:uppercase">
+  <div id="act-error" style="color:#ff5a5a;font-size:13px;margin:4px 0"></div>
+  <button class="btn-white" onclick="activate()">⚡ Activar App Ahora</button>
+  <div style="text-align:center;margin:16px 0;opacity:0.3">o</div>
+  <a href="https://wa.me/56929698056?text=Hola!%20Quiero%20comprar%20la%20licencia%20de%20TasaStock%20PRO" target="_blank" style="text-decoration:none">
+    <button class="btn-green">💬 Comprar Licencia por WhatsApp - +56 9 2969 8056</button>
+  </a>
+  <p class="small" style="text-align:center;margin-top:12px;opacity:0.3">Toque 5 veces el escudo si es dueño</p>
+</div>
+
+<div id="main-screen" class="card hidden">
+  <div style="display:flex;justify-content:space-between;align-items:center">
+    <b>TasaStock PRO <span style="background:#25D366;color:#000;padding:2px 6px;border-radius:6px;font-size:10px">OFFLINE</span></b>
+    <button onclick="logout()" style="width:auto;padding:0 12px;height:32px" class="btn-dark">Salir</button>
+  </div>
+  
+  <div style="margin:16px 0;background:#0e0e10;border:1px solid #2a2a30;border-radius:14px;padding:14px">
+    <label class="small">TASA OFICIAL BCV (Bs por $)</label>
+    <input id="tasa-input" type="number" step="0.01" value="145.50">
+  </div>
+
+  <div style="display:flex;gap:8px">
+    <input id="p-name" placeholder="Nombre Ej: Harina PAN">
+    <input id="p-price" type="number" step="0.01" placeholder="$ Ej: 1.3" style="max-width:110px">
+    <button onclick="addProd()" style="width:50px" class="btn-white">+</button>
+  </div>
+
+  <input id="search" placeholder="Buscar producto..." oninput="render()">
+
+  <div id="list"></div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:16px 0">
+    <div style="background:#1a1a1e;border-radius:12px;padding:10px;text-align:center"><div class="small">ITEMS</div><b id="t-items">0</b></div>
+    <div style="background:#1a1a1e;border-radius:12px;padding:10px;text-align:center"><div class="small">TOTAL $</div><b id="t-usd">$0</b></div>
+    <div class="total"><div class="small">TOTAL Bs</div><b id="t-bs">0</b></div>
+  </div>
+
+  <div class="row">
+    <button class="btn-dark" onclick="exportar()">⬇️ Exportar .json</button>
+    <label class="btn-dark" style="display:flex;align-items:center;justify-content:center;cursor:pointer">⬆️ Importar <input type="file" id="import-file" accept=".json" style="display:none"></label>
+  </div>
+</div>
+
+<script>
+const SEED=9281, MULT=37;
+function generarCodigo(nombre){
+  let clean=nombre.toUpperCase().replace(/[^A-Z]/g,'');
+  let letters=(clean.slice(0,4)+'XXXX').slice(0,4);
+  let sum=[...letters].reduce((a,c)=>a+c.charCodeAt(0),0);
+  let chk=(sum*MULT+SEED)%10000;
+  return letters+'-'+String(chk).padStart(4,'0');
+}
+function validarCodigo(code){
+  let t=code.trim().toUpperCase();
+  let m=t.match(/^([A-Z]{4})-(\d{4})$/);
+  if(!m) return false;
+  let letters=m[1], num=parseInt(m[2]);
+  let sum=[...letters].reduce((a,c)=>a+c.charCodeAt(0),0);
+  return ((sum*MULT+SEED)%10000)===num;
+}
+let tapTimes=[];
+function ownerTap(){
+  let now=Date.now();
+  tapTimes.push(now);
+  tapTimes=tapTimes.filter(x=>now-x<4000);
+  if(tapTimes.length>=5){
+    document.getElementById('owner-panel').classList.remove('hidden');
+    tapTimes=[];
+    if(navigator.vibrate) navigator.vibrate(50);
+  }
+}
+document.getElementById('owner-trigger').addEventListener('click',ownerTap);
+document.getElementById('owner-trigger-2').addEventListener('click',ownerTap);
+document.getElementById('owner-trigger').addEventListener('touchstart',ownerTap);
+
+function genCode(){
+  let name=document.getElementById('owner-name').value;
+  if(!name) return;
+  let c=generarCodigo(name);
+  document.getElementById('gen-result').textContent=c;
+  window._lastGen=c;
+}
+function useGen(){
+  if(window._lastGen){
+    document.getElementById('act-input').value=window._lastGen;
+    document.getElementById('owner-panel').classList.add('hidden');
+  }
+}
+function activate(){
+  let code=document.getElementById('act-input').value.trim().toUpperCase();
+  if(!validarCodigo(code)){
+    document.getElementById('act-error').textContent='Código inválido. Compra tu licencia al +56 9 2969 8056';
+    return;
+  }
+  localStorage.setItem('tasastock_license',code);
+  showMain();
+}
+function showMain(){
+  document.getElementById('activation-screen').classList.add('hidden');
+  document.getElementById('main-screen').classList.remove('hidden');
+  render();
+}
+function logout(){
+  if(confirm('¿Cerrar sesión? Necesitarás el código para entrar de nuevo')){
+    localStorage.removeItem('tasastock_license');
+    location.reload();
+  }
+}
+let productos=JSON.parse(localStorage.getItem('tasastock_products')||'[{"id":"1","name":"Harina PAN 1kg","price":2.5,"stock":10}]');
+let tasa=parseFloat(localStorage.getItem('tasastock_tasa')||'145.5');
+document.getElementById('tasa-input').value=tasa;
+document.getElementById('tasa-input').addEventListener('input',e=>{
+  tasa=parseFloat(e.target.value)||0;
+  localStorage.setItem('tasastock_tasa',tasa);
+  render();
+});
+function save(){
+  localStorage.setItem('tasastock_products',JSON.stringify(productos));
+  render();
+}
+function addProd(){
+  let name=document.getElementById('p-name').value.trim();
+  let price=parseFloat(document.getElementById('p-price').value);
+  if(!name||isNaN(price)) return;
+  productos.unshift({id:Date.now().toString(),name,price,stock:1});
+  document.getElementById('p-name').value='';
+  document.getElementById('p-price').value='';
+  save();
+}
+function delProd(id){
+  productos=productos.filter(p=>p.id!==id);
+  save();
+}
+function chgStock(id,d){
+  let p=productos.find(x=>x.id===id);
+  if(p){p.stock=Math.max(0,p.stock+d);save();}
+}
+function render(){
+  let q=document.getElementById('search').value.toLowerCase();
+  let list=document.getElementById('list');
+  let filt=productos.filter(p=>p.name.toLowerCase().includes(q));
+  list.innerHTML=filt.map(p=>{
+    let bs=(p.price*tasa).toFixed(2);
+    return `<div class="prod"><div><b>${p.name}</b><br><span class="mono small">$${p.price.toFixed(2)} • Bs ${bs}</span></div><div class="row"><button onclick="chgStock('${p.id}',-1)" class="btn-dark" style="width:32px">-</button><span style="min-width:24px;text-align:center">${p.stock}</span><button onclick="chgStock('${p.id}',1)" class="btn-dark" style="width:32px">+</button><button onclick="delProd('${p.id}')" class="btn-dark" style="width:32px">🗑️</button></div></div>`;
+  }).join('');
+  let totalItems=productos.reduce((a,p)=>a+p.stock,0);
+  let totalUSD=productos.reduce((a,p)=>a+p.price*p.stock,0);
+  document.getElementById('t-items').textContent=totalItems;
+  document.getElementById('t-usd').textContent='$'+totalUSD.toFixed(2);
+  document.getElementById('t-bs').textContent= (totalUSD*tasa).toFixed(2);
+}
+function exportar(){
+  let data={productos,tasa,fecha:new Date().toISOString()};
+  let blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  let url=URL.createObjectURL(blob);
+  let a=document.createElement('a');a.href=url;a.download='respaldo-tasastock.json';a.click();
+}
+document.getElementById('import-file').addEventListener('change',e=>{
+  let file=e.target.files[0];
+  if(!file) return;
+  let r=new FileReader();
+  r.onload=ev=>{
+    try{
+      let d=JSON.parse(ev.target.result);
+      if(d.productos){productos=d.productos;save();}
+      if(d.tasa){tasa=d.tasa;localStorage.setItem('tasastock_tasa',tasa);document.getElementById('tasa-input').value=tasa;}
+      render();
+    }catch(err){alert('Archivo inválido')}
+  };
+  r.readAsText(file);
+});
+// init
+let lic=localStorage.getItem('tasastock_license');
+if(lic && validarCodigo(lic)){showMain();}
+</script>
+</body>
+</html>

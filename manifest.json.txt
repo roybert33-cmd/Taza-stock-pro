@@ -1,0 +1,18 @@
+{
+  "name": "TasaStock PRO",
+  "short_name": "TasaStock",
+  "description": "Control de inventario y calculo de tasa $ a Bs. 100% offline, pago unico.",
+  "display": "standalone",
+  "background_color": "#0a0a0b",
+  "theme_color": "#0a0a0b",
+  "orientation": "portrait",
+  "start_url": "/TasaStock-PRO/",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/891/891462.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
